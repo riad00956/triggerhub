@@ -1,9 +1,10 @@
 import time
 import requests
-from services.log_service import save_log
-from services.user_service import notify_user
-
-TIMEOUT = 10
+from services.log_service import save_log, debug_status
+from services.user_service import get_user_plan
+from services.user_service import get_user_plan
+from services.user_service import get_user_plan
+from services.user_service import get_user_plan
 
 def ping_url(monitor_id, user_id, url):
     start = time.time()
@@ -12,7 +13,7 @@ def ping_url(monitor_id, user_id, url):
     response_time = None
 
     try:
-        r = requests.get(url, timeout=TIMEOUT, allow_redirects=True)
+        r = requests.get(url, timeout=10, allow_redirects=True)
         response_time = int((time.time() - start) * 1000)
 
         if r.status_code >= 400:
@@ -27,7 +28,7 @@ def ping_url(monitor_id, user_id, url):
         status = "DOWN"
         reason = "Connection Error"
 
-    # Save log (PRIME users can view)
+    # Save log
     save_log(
         monitor_id=monitor_id,
         status=status,
@@ -35,9 +36,18 @@ def ping_url(monitor_id, user_id, url):
         response_time=response_time
     )
 
-    # Notify only on DOWN
+    # Notify user only if down
     if status == "DOWN":
-        notify_user(
+        from bot.instance import bot
+        bot.send_message(
             user_id,
             f"🚨 <b>DOWN</b>\n{url}\nReason: {reason}"
+        )
+
+    # PRIME debug message
+    if get_user_plan(user_id) == "PRIME":
+        last_status = debug_status(user_id, monitor_id)
+        bot.send_message(
+            user_id,
+            f"🧪 Debug: {last_status}"
         )
